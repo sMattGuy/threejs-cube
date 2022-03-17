@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from './OrbitControls.js'
 //import { TeapotGeometry } from '../models/TeapotGeometry.js';
-//import { GLTFLoader } from './GLTFLoader.js';
+import { GLTFLoader } from './GLTFLoader.js';
 
 let lightColor = 0;
 
@@ -53,6 +53,7 @@ scene.add(floor);
 
 
 //cube
+/*
 const boxGeometry = new THREE.BoxGeometry();
 const boxMaterial = new THREE.MeshPhongMaterial({color:0xFFFFFF,dithering:true});
 const cube = new THREE.Mesh(boxGeometry,boxMaterial);
@@ -60,7 +61,7 @@ cube.castShadow = true;
 cube.receiveShadow = true;
 scene.add(cube);
 //end cube
-
+*/
 /*
 //teapot
 let teapot;
@@ -76,6 +77,13 @@ let shading;
 createTeapot();
 //end teapot
 */
+let duck;
+const gltfLoader = new GLTFLoader();
+const url = '../models/Duck.gltf';
+gltfLoader.load(url, (gltf) => {
+	duck = gltf.scene;
+	scene.add(duck);
+});
 
 camera.position.z = 10
 
@@ -89,13 +97,16 @@ function animate(){
 	requestAnimationFrame(animate);
 	
 	//do things to cube
+	/*
 	cube.rotation.x += 0.01;
 	cube.rotation.y += 0.01;
-	
+	*/
 	/*
 	teapot.rotation.x += 0.01;
 	teapot.rotation.y += 0.01;
 	*/
+	duck.rotation.x += 0.01;
+	duck.rotation.y += 0.01;
 	renderer.render(scene, camera);
 }
 function onWindowResize() {
