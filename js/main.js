@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from './OrbitControls.js'
 //import { TeapotGeometry } from '../models/TeapotGeometry.js';
-//import { GLTFLoader } from './GLTFLoader.js';
+import { GLTFLoader } from './GLTFLoader.js';
 
 let lightColor = 0;
 
@@ -53,12 +53,14 @@ scene.add(floor);
 
 
 //cube
+/*
 const boxGeometry = new THREE.BoxGeometry();
 const boxMaterial = new THREE.MeshPhongMaterial({color:0xFFFFFF,dithering:true});
 const cube = new THREE.Mesh(boxGeometry,boxMaterial);
 cube.castShadow = true;
 cube.receiveShadow = true;
 scene.add(cube);
+*/
 //end cube
 
 /*
@@ -77,6 +79,11 @@ createTeapot();
 //end teapot
 */
 
+const loader = new GLTFLoader();
+loader.load('../models/Pathfinder.glb',function(gltf){
+	scene.add(gltf);
+});
+
 camera.position.z = 10
 
 animate();
@@ -89,9 +96,10 @@ function animate(){
 	requestAnimationFrame(animate);
 	
 	//do things to cube
+	/*
 	cube.rotation.x += 0.01;
 	cube.rotation.y += 0.01;
-	
+	*/
 	/*
 	teapot.rotation.x += 0.01;
 	teapot.rotation.y += 0.01;
