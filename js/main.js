@@ -62,7 +62,7 @@ cube.receiveShadow = true;
 scene.add(cube);
 */
 //end cube
-
+*/
 /*
 //teapot
 let teapot;
@@ -78,6 +78,13 @@ let shading;
 createTeapot();
 //end teapot
 */
+let duck;
+const gltfLoader = new GLTFLoader();
+const url = '../models/Duck.gltf';
+gltfLoader.load(url, (gltf) => {
+	duck = gltf.scene;
+	scene.add(duck);
+});
 
 const loader = new GLTFLoader();
 loader.load('../models/Pathfinder.glb',function(gltf){
@@ -104,6 +111,8 @@ function animate(){
 	teapot.rotation.x += 0.01;
 	teapot.rotation.y += 0.01;
 	*/
+	duck.rotation.x += 0.01;
+	duck.rotation.y += 0.01;
 	renderer.render(scene, camera);
 }
 function onWindowResize() {
