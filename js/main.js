@@ -1,88 +1,60 @@
 import * as THREE from 'three';
 import {OrbitControls} from './OrbitControls.js'
-//import { TeapotGeometry } from '../models/TeapotGeometry.js';
 import { GLTFLoader } from './GLTFLoader.js';
 
-let lightColor = 0;
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0, 10, 20);
 
 const renderer = new THREE.WebGLRenderer();
+renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 document.body.appendChild(renderer.domElement);
 
-renderer.shadowMap.enabled = true;
-renderer.outputEncoding = THREE.sRGBEncoding;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('black');
 
 //controls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.addEventListener('change',render);
-controls.minDistance = 5;
-controls.maxDistance = 500;
-controls.enablePan = false;
+controls.minDistance = 500;
+controls.maxDistance = 5000;
+controls.enablePan = true;
+controls.target.set(0,5,0);
+controls.update();
+//controls end
 
-//ambient light
-const ambient = new THREE.AmbientLight(0x111111,0.1);
-scene.add(ambient);
-//end light
-//spotlight
-let spotLight1 = createSpotlight(0xFF0000);
-let spotLight2 = createSpotlight(0x00FF00);
-let spotLight3 = createSpotlight(0x0000FF);
+//lights
+const skylight = new THREE.HemisphereLight(0xb1e1ff, 0xb97a20, 0.6);
+scene.add(skylight);
 
-spotLight1.position.set(-5,5,0);
-spotLight2.position.set(5,5,0);
-spotLight3.position.set(0,5,5);
+const dirlight = new THREE.DirectionalLight(0xffffff,0.8);
+dirlight.position.set(5,10,2);
+scene.add(dirlight);
+scene.add(dirlight.target);
+//lights end
 
-scene.add(spotLight1);
-scene.add(spotLight2);
-scene.add(spotLight3);
-//end spotlight
-
-//floor
-let floorMaterial = new THREE.MeshPhongMaterial( { color: 0x808080, dithering: true } );
-let floorGeometry = new THREE.PlaneGeometry( 2000, 2000 );
-let floor = new THREE.Mesh( floorGeometry, floorMaterial );
-floor.position.set( 0, - 1, 0 );
-floor.rotation.x = - Math.PI * 0.5;
-floor.receiveShadow = true;
-scene.add(floor);
-//end floor
-
-
-//cube
-/*
-const boxGeometry = new THREE.BoxGeometry();
-const boxMaterial = new THREE.MeshPhongMaterial({color:0xFFFFFF,dithering:true});
-const cube = new THREE.Mesh(boxGeometry,boxMaterial);
-cube.castShadow = true;
-cube.receiveShadow = true;
-scene.add(cube);
-//end cube
-*/
-/*
-//teapot
-let teapot;
-const teapotSize = 0.5;
-let tess = - 1;	// force initialization
-let bBottom;
-let bLid;
-let bBody;
-let bFitLid;
-let bNonBlinn;
-let shading;
-
-createTeapot();
-//end teapot
-*/
-let duck;
+let city;
+let cars;
 const gltfLoader = new GLTFLoader();
-const url = '../models/Duck.gltf';
+const url = '../models/city/scene.gltf';
 gltfLoader.load(url, (gltf) => {
-	duck = gltf.scene;
-	scene.add(duck);
+	city = gltf.scene;
+	scene.add(city);
+	
+	cars = city.getObjectByName('Cars');
+	
+	const box = new THREE.Box3().setFromObject(city);
+	const boxSize = box.getSize(new THREE.Vector3()).length();
+	const boxCenter = box.getCenter(new THREE.Vector3());
+
+	// set the camera to frame the box
+	frameArea(boxSize * 0.5, boxSize, boxCenter, camera);
+	// update the Trackball controls to handle the new size
+	controls.maxDistance = boxSize * 10;
+	controls.target.copy(boxCenter);
+	controls.update();
 });
 
 camera.position.z = 10
@@ -95,18 +67,6 @@ function render() {
 }
 function animate(){
 	requestAnimationFrame(animate);
-	
-	//do things to cube
-	/*
-	cube.rotation.x += 0.01;
-	cube.rotation.y += 0.01;
-	*/
-	/*
-	teapot.rotation.x += 0.01;
-	teapot.rotation.y += 0.01;
-	*/
-	duck.rotation.x += 0.01;
-	duck.rotation.y += 0.01;
 	renderer.render(scene, camera);
 }
 function onWindowResize() {
@@ -115,26 +75,28 @@ function onWindowResize() {
 
 	renderer.setSize( window.innerWidth, window.innerHeight );
 }
-function createSpotlight(color){
-	let spotLight = new THREE.SpotLight(color, 0.5);
-	spotLight.angle = Math.PI / 8;
-	spotLight.penumbra = 0.1;
-	spotLight.decay = 0;
-	spotLight.distance = 10;
+function frameArea(sizeToFitOnScreen, boxSize, boxCenter, camera) {
+	const halfSizeToFitOnScreen = sizeToFitOnScreen * 0.5;
+	const halfFovY = THREE.MathUtils.degToRad(camera.fov * .5);
+	const distance = halfSizeToFitOnScreen / Math.tan(halfFovY);
+	// compute a unit vector that points in the direction the camera is now
+	// in the xz plane from the center of the box
+	const direction = (new THREE.Vector3())
+		.subVectors(camera.position, boxCenter)
+		.multiply(new THREE.Vector3(1, 0, 1))
+		.normalize();
 
-	spotLight.castShadow = true;
-	return spotLight;
-}
-/*
-function createTeapot(){
-	if(teapot !== undefined){
-		teapot.geometry.dispose();
-		scene.remove(teapot);
-	}
-	const geometry = new TeapotGeometry( teapotSize, tess);
-	let teaMesh = new THREE.MeshPhongMaterial( { color: 0xFFFFFF, dithering: true } );
-	teapot = new THREE.Mesh( geometry, teaMesh);
+	// move the camera to a position distance units way from the center
+	// in whatever direction the camera was from the center already
+	camera.position.copy(direction.multiplyScalar(distance).add(boxCenter));
 
-	scene.add( teapot );
+	// pick some near and far values for the frustum that
+	// will contain the box.
+	camera.near = boxSize / 100;
+	camera.far = boxSize * 100;
+
+	camera.updateProjectionMatrix();
+
+	// point the camera to look at the center of the box
+	camera.lookAt(boxCenter.x, boxCenter.y, boxCenter.z);
 }
-*/
